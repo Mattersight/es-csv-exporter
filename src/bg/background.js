@@ -1,6 +1,6 @@
 /*
  * Elasticsearch CSV Exporter
- * v0.1
+ * v0.2
  * https://github.com/minewhat/es-csv-exporter
  * MIT licensed
  *
@@ -9,9 +9,10 @@
  * Credits: This extension is created using Extensionizr , github.com/uzairfarooq/arrive
  */
 
-chrome.runtime.onMessage.addListener(
+
+browser.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-      //console.log(sender.tab ? "from a content script:" + sender.tab.url : "from the extension");
+      console.log(sender.tab ? "from a content script:" + sender.tab.url : "from the extension");
       if (request.msg == "store-csv"){
         var csvContents = request.data;
         var input = document.createElement('textarea');
@@ -34,25 +35,36 @@ chrome.runtime.onMessage.addListener(
     }
 );
 
+
 function badgeOnOff(on) {
   if (on) {
-    chrome.browserAction.setBadgeText({text: 'ON'});
+    browser.browserAction.setBadgeText({text: 'ON'});
   }
   else {
-    chrome.browserAction.setBadgeText({text: ''});
+	
+    browser.browserAction.setBadgeText({text: 'OFF'});
   }
 }
-chrome.browserAction.setBadgeBackgroundColor({color: '#d57d00'});
-chrome.browserAction.setBadgeText({text: ''});
+browser.browserAction.setBadgeBackgroundColor({color: '#d57d00'});
+browser.browserAction.setBadgeText({text: ''});
 
+function toggleTab(tabs) {
+	for (let tab of tabs) {
+		// tab.url requires the `tabs` permission in manifest.json
+		if(tab && tab.url && tab.url.indexOf("app/kibana") >= 0){
+			badgeOnOff(true);
+		}else{
+			badgeOnOff(false);
+		}
+	}
+}
+
+function onError(error) {
+  console.log('Error: ${error}');
+}
 
 //On tab selection change
-chrome.tabs.onSelectionChanged.addListener(function(tabId, selectInfo){
-  chrome.tabs.getSelected(null, function(tab){
-    if(tab && tab.url && tab.url.indexOf("app/kibana") >= 0){
-      badgeOnOff(true);
-    }else{
-      badgeOnOff(false);
-    }
-  });
+browser.tabs.onActivated.addListener(function(tabId, selectInfo){
+	var querying = browser.tabs.query({currentWindow: true, active: true});
+	querying.then(toggleTab, onError);
 });
